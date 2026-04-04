@@ -117,6 +117,7 @@ function AppContent() {
         const totalCount = data.total || data.meta?.total || normalized.length;
         setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
       } else {
+        // Fallback до initialPets з коректною пагінацією
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         setPets(initialPets.slice(start, start + ITEMS_PER_PAGE));
         setTotalPages(Math.max(1, Math.ceil(initialPets.length / ITEMS_PER_PAGE)));
@@ -151,9 +152,11 @@ function AppContent() {
 
   const loadTrialPets = useCallback(async () => {
     try {
-      const data = await apiCall("/pets?status=trial&per_page=100", "GET", undefined, token || "");
+      // Завантажуємо більше тварин для адмін-панелі "На тріалі", щоб бачити всіх незалежно від сторінки
+      const data = await apiCall("/pets?per_page=100", "GET", undefined, token || "");
       const serverPetsRaw: any[] = Array.isArray(data) ? data : (data.data || []);
-      setPetsOnTrial(serverPetsRaw.map(normalizePet));
+      const trialOnly = serverPetsRaw.map(normalizePet).filter(p => p.status === "trial");
+      setPetsOnTrial(trialOnly);
     } catch (error) {
       console.error("Error loading trial pets:", error);
     }
@@ -291,6 +294,7 @@ function AppContent() {
       await apiCall(`/pets/${updated.id}`, "PUT", payload, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
       loadPets();
+      loadTrialPets(); // Оновлюємо список тріалу при зміні статусу
     } catch (error) {
       console.error("Update Pet Error:", error);
     }
@@ -302,6 +306,7 @@ function AppContent() {
       await apiCall(`/pets/${petId}`, "DELETE", undefined, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
       loadPets();
+      setPetsOnTrial(prev => prev.filter(p => p.id !== petId));
     } catch (error) { alert("Помилка при видаленні"); }
   };
 
@@ -337,12 +342,17 @@ function AppContent() {
   const handleReturnPetFromTrial = async (petId: string) => {
     if (!token || !window.confirm("Повернути тваринку?")) return;
     try {
+      // Оптимістично видаляємо з UI відразу
+      setPetsOnTrial(prev => prev.filter(p => p.id !== petId));
+      
       await apiCall(`/pets/${petId}/return`, "PATCH", {}, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
-      setPetsOnTrial(prev => prev.filter(p => p.id !== petId));
       loadTrialPets();
       loadPets();
-    } catch (error) { alert("Помилка при поверненні"); }
+    } catch (error) { 
+      alert("Помилка при поверненні");
+      loadTrialPets(); // Повертаємо список якщо сталася помилка
+    }
   };
 
   const handleDonate = async () => {
@@ -455,12 +465,16 @@ function AppContent() {
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
                     <h3 className="text-lg font-semibold text-amber-900 mb-3">На тріалі</h3>
                     <div className="space-y-2">
-                      {petsOnTrial.map(pet => (
-                        <div key={pet.id} className="flex items-center justify-between p-2 border rounded bg-amber-50">
-                          <span className="text-sm">{pet.name}</span>
-                          <Button size="sm" variant="outline" onClick={() => handleReturnPetFromTrial(pet.id)}>Повернути</Button>
-                        </div>
-                      ))}
+                      {petsOnTrial.length > 0 ? (
+                        petsOnTrial.map(pet => (
+                          <div key={pet.id} className="flex items-center justify-between p-2 border rounded bg-amber-50">
+                            <span className="text-sm">{pet.name}</span>
+                            <Button size="sm" variant="outline" onClick={() => handleReturnPetFromTrial(pet.id)}>Повернути</Button>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-slate-500">Список порожній</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -573,7 +587,7 @@ function AppContent() {
                 <div className="relative">
                   <Input
                     type="number"
-                    placeholder="Своя сума"
+                    placeholder="Сума"
                     value={donateAmount}
                     onChange={(e) => setDonateAmount(Number(e.target.value))}
                     className="border-amber-200 text-xs px-2 h-full"
