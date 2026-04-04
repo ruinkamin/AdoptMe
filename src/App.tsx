@@ -5,6 +5,7 @@ import { Matchmaker } from "./components/Matchmaker";
 import { AdoptionForm } from "./components/AdoptionForm";
 import { AddPetForm } from "./components/AddPetForm";
 import { Button } from "./components/ui/button";
+import { Input } from "./components/ui/input";
 import { Plus, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { apiCall } from "./utils/api";
@@ -124,7 +125,7 @@ function AppContent() {
       console.error("Error loading pets:", error);
       const start = (currentPage - 1) * ITEMS_PER_PAGE;
       setPets(initialPets.slice(start, start + ITEMS_PER_PAGE));
-      setTotalPages(Math.ceil(initialPets.length / ITEMS_PER_PAGE));
+      setTotalPages(Math.max(1, Math.ceil(initialPets.length / ITEMS_PER_PAGE)));
     }
   }, [currentPage, token]);
 
@@ -338,6 +339,7 @@ function AppContent() {
     try {
       await apiCall(`/pets/${petId}/return`, "PATCH", {}, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
+      setPetsOnTrial(prev => prev.filter(p => p.id !== petId));
       loadTrialPets();
       loadPets();
     } catch (error) { alert("Помилка при поверненні"); }
@@ -551,11 +553,39 @@ function AppContent() {
       {/* Модалка донату */}
       {showDonateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-sm w-full p-6">
-            <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Донат</h3><Button variant="ghost" onClick={() => setShowDonateModal(false)}><X className="w-4 h-4" /></Button></div>
-            <div className="space-y-4">
-              <input type="number" value={donateAmount} onChange={(e) => setDonateAmount(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2" />
-              <Button className="w-full bg-emerald-600 text-white" onClick={handleDonate} disabled={isDonating}>{isDonating ? "..." : "Сплатити"}</Button>
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-2xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-amber-900">Підтримати притулок</h3>
+              <Button variant="ghost" onClick={() => setShowDonateModal(false)}><X className="w-4 h-4" /></Button>
+            </div>
+            <div className="space-y-6">
+              <div className="grid grid-cols-3 gap-2">
+                {[50, 100, 200, 500, 1000].map(amount => (
+                  <Button
+                    key={amount}
+                    variant={donateAmount === amount ? "default" : "outline"}
+                    className={donateAmount === amount ? "bg-amber-600 text-white" : "border-amber-200 text-amber-800"}
+                    onClick={() => setDonateAmount(amount)}
+                  >
+                    {amount}
+                  </Button>
+                ))}
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="Своя сума"
+                    value={donateAmount}
+                    onChange={(e) => setDonateAmount(Number(e.target.value))}
+                    className="border-amber-200 text-xs px-2 h-full"
+                  />
+                </div>
+              </div>
+              <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                <p className="text-xs text-amber-800 text-center italic">"Кожна гривня допомагає нам купувати корм та ліки для наших пухнастиків" 🐾</p>
+              </div>
+              <Button className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold h-12 shadow-md" onClick={handleDonate} disabled={isDonating}>
+                {isDonating ? "Зачекайте..." : `Сплатити ${donateAmount} грн 💛`}
+              </Button>
             </div>
           </div>
         </div>
