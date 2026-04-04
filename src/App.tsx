@@ -6,7 +6,7 @@ import { AdoptionForm } from "./components/AdoptionForm";
 import { AddPetForm } from "./components/AddPetForm";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
-import { Plus, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, X, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, MapPin, Calendar, Heart, Info, DollarSign, Activity } from "lucide-react";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { apiCall } from "./utils/api";
 import { initialPets } from "./data/pets";
@@ -55,7 +55,7 @@ function AppContent() {
     const ageMonths = raw.age_months ?? (typeof raw.age === "string" ? Math.round(Number(raw.age.replace(/[^0-9.]/g, "")) * 12) : 0);
     
     return {
-      id: String(raw.id || raw._id || Math.random().toString(36).substr(2, 9)),
+      id: String(raw.id || raw._id || ""),
       type: raw.type === "cat" || raw.type === "dog" ? raw.type : "cat",
       breed_visual: raw.breed_visual || raw.breed || "",
       name: raw.name || "",
@@ -112,7 +112,6 @@ function AppContent() {
       setAllPetsRaw(combined);
       setTotalPages(Math.max(1, Math.ceil(combined.length / ITEMS_PER_PAGE)));
     } catch (error) {
-      console.error("Error loading all pets:", error);
       setAllPetsRaw(initialPets);
       setTotalPages(Math.max(1, Math.ceil(initialPets.length / ITEMS_PER_PAGE)));
     }
@@ -351,14 +350,14 @@ function AppContent() {
                   <Matchmaker pets={allPetsRaw} onMatch={handleAdopt} onAiFilter={(ids) => setAiFilteredPetIds(ids.length > 0 ? ids : null)} />
                   {applications.length > 0 && (
                     <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
-                      <h3 className="text-lg font-semibold text-amber-900 mb-3 text-center border-b pb-2">Мої заявки</h3>
+                      <h3 className="text-lg font-semibold text-amber-900 mb-3 text-center border-b pb-2 font-bold uppercase tracking-wider text-xs">Мої заявки</h3>
                       <div className="space-y-3">
                         {applications.map(app => (
                           <div key={app.id} className="p-3 rounded-lg border border-amber-100 bg-amber-50/50 flex justify-between items-start shadow-sm transition-hover hover:bg-amber-50">
                             <div>
                               <p className="text-sm font-bold text-amber-900">{app.pet_name || "Тваринка"}</p>
-                              <p className="text-[10px] text-slate-500">{app.booking_date}</p>
-                              <p className="text-xs mt-1 font-medium"><span className={app.status === "approved" ? "text-emerald-600" : app.status === "rejected" ? "text-red-500" : "text-amber-600"}>{app.status === "pending" ? "Очікування" : app.status === "approved" ? "Схвалено" : "Відхилено"}</span></p>
+                              <p className="text-[10px] text-slate-500 font-medium">📅 {app.booking_date}</p>
+                              <p className="text-[10px] mt-2 font-bold uppercase">Статус: <span className={app.status === "approved" ? "text-emerald-600" : app.status === "rejected" ? "text-red-500" : "text-amber-600"}>{app.status === "pending" ? "Очікування" : app.status === "approved" ? "Схвалено" : "Відхилено"}</span></p>
                             </div>
                             <Button variant="ghost" size="sm" onClick={() => handleDeleteApplication(app.id)} className="text-red-400 hover:text-red-600 p-1"><X className="w-4 h-4" /></Button>
                           </div>
@@ -370,21 +369,25 @@ function AppContent() {
               ) : (
                 <div className="sticky top-24 space-y-6">
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-amber-900 mb-3 text-center border-b pb-2">Заявки</h3>
+                    <h3 className="text-lg font-bold text-amber-900 mb-4 text-center border-b border-amber-50 pb-3 uppercase tracking-wider text-xs">Заявки (Очікують)</h3>
                     {allApplications.filter(app => app.status === 'pending').length > 0 ? (
-                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
                         {allApplications.filter(app => app.status === 'pending').map(app => (
                           <div key={app.id} className="p-3 rounded-lg border border-amber-200 bg-amber-50 shadow-sm">
                             <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedAppId(expandedAppId === app.id ? null : app.id)}>
-                              <div><p className="font-bold text-amber-900 text-sm">{app.pet_name}</p><p className="text-[10px] text-slate-600">Від: {app.user_name || app.full_name}</p></div>
+                              <div><p className="font-bold text-amber-900 text-sm">{app.pet_name}</p><p className="text-[10px] text-slate-600 font-medium">Від: {app.user_name || app.full_name}</p></div>
                               <div className="bg-white p-1 rounded-full shadow-sm">{expandedAppId === app.id ? <ChevronUp className="w-4 h-4 text-amber-600" /> : <ChevronDown className="w-4 h-4 text-amber-600" />}</div>
                             </div>
                             {expandedAppId === app.id && (
-                              <div className="mt-3 pt-3 border-t border-amber-200 text-[11px] space-y-2">
-                                <p>📞 {app.phone}</p><p>🏠 {app.address}</p>
+                              <div className="mt-3 pt-3 border-t border-amber-200 text-[11px] space-y-2 text-slate-700">
+                                <p className="flex items-center gap-2">📞 {app.phone}</p>
+                                <p className="flex items-center gap-2">🏠 {app.address}</p>
+                                <p className="flex items-center gap-2">📅 {app.booking_date} {app.booking_time}</p>
+                                <p className="flex items-center gap-2">🦴 Тип: {app.type === 'trial_day' ? 'Тріал' : 'Усиновлення'}</p>
+                                <p className="flex items-center gap-2">👨‍👩‍👧 Діти: {app.has_children ? 'Так' : 'Ні'} | 🐾 Тварини: {app.has_other_pets ? 'Так' : 'Ні'}</p>
                                 <div className="flex gap-2 mt-4">
-                                  <Button size="sm" onClick={() => handleApproveApplication(app.id)} className="flex-1 bg-emerald-600 text-white text-xs h-8">Погодити</Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleRejectApplication(app.id)} className="flex-1 text-red-600 border-red-200 text-xs h-8">Відхилити</Button>
+                                  <Button size="sm" onClick={() => handleApproveApplication(app.id)} className="flex-1 bg-emerald-600 text-white font-bold h-8 text-xs">Схвалити</Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleRejectApplication(app.id)} className="flex-1 text-red-600 border-red-300 font-bold h-8 text-xs">Відхилити</Button>
                                 </div>
                               </div>
                             )}
@@ -394,13 +397,13 @@ function AppContent() {
                     ) : <p className="text-sm text-slate-500 text-center py-4">Немає нових заявок.</p>}
                   </div>
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-amber-900 mb-3 text-center border-b pb-2">На тріалі</h3>
+                    <h3 className="text-lg font-bold text-amber-900 mb-4 text-center border-b border-amber-50 pb-3 uppercase tracking-wider text-xs">На тріалі</h3>
                     <div className="space-y-2">
                       {petsOnTrial.length > 0 ? (
                         petsOnTrial.map(pet => (
-                          <div key={pet.id} className="flex items-center justify-between p-2 border border-amber-100 rounded bg-amber-50/50 shadow-sm">
-                            <span className="text-sm font-medium">{pet.name}</span>
-                            <Button size="sm" variant="outline" onClick={() => handleReturnPetFromTrial(pet.id)} className="h-7 text-[10px] text-amber-700 border-amber-200">Повернути</Button>
+                          <div key={pet.id} className="flex items-center justify-between p-2.5 border border-amber-100 rounded-lg bg-amber-50/50 shadow-sm">
+                            <span className="text-sm font-bold text-amber-900">{pet.name}</span>
+                            <Button size="sm" variant="outline" onClick={() => handleReturnPetFromTrial(pet.id)} className="h-7 text-[10px] font-bold text-amber-700 border-amber-200 hover:bg-white rounded-lg">Повернути</Button>
                           </div>
                         ))
                       ) : <p className="text-xs text-slate-500 text-center py-4">Список заброньованих порожній</p>}
@@ -412,18 +415,20 @@ function AppContent() {
 
             <div className="w-full lg:w-2/3">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-amber-900">Наші улюбленці</h2>
-                {isAdmin && <Button onClick={() => setShowAddPet(true)} className="bg-amber-600 text-white font-bold"><Plus className="w-4 h-4 mr-2" /> Додати</Button>}
+                <h2 className="text-2xl font-bold text-amber-900 tracking-tight">Наші улюбленці</h2>
+                {isAdmin && <Button onClick={() => setShowAddPet(true)} className="bg-amber-600 text-white font-bold rounded-xl h-10 px-5 shadow-md"><Plus className="w-4 h-4 mr-2" /> Додати</Button>}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {(aiFilteredPetIds ? allPetsRaw.filter(p => aiFilteredPetIds.includes(p.id)) : pets).map((pet) => (
                   <PetCard key={pet.id} pet={pet} onTrialDay={handleTrialDay} onAdopt={handleAdopt} onSelect={handleOpenPetDetails} isAdmin={isAdmin} onDelete={handleDeletePet} />
                 ))}
               </div>
-              <div className="flex justify-between items-center mt-10 border-t border-amber-100 pt-6">
-                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="border-amber-200 text-amber-800">Назад</Button>
-                <span className="text-sm font-bold text-amber-900">Сторінка {currentPage} з {totalPages}</span>
-                <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="border-amber-200 text-amber-800">Вперед</Button>
+              <div className="flex justify-between items-center mt-12 border-t border-amber-100 pt-8">
+                <Button variant="outline" size="sm" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="border-amber-200 text-amber-800 font-bold px-5 h-10 rounded-xl bg-white shadow-sm transition-all active:scale-95">Назад</Button>
+                <div className="bg-white px-4 py-2 rounded-full border border-amber-100 shadow-sm">
+                  <span className="text-sm font-bold text-amber-900">Сторінка {currentPage} з {totalPages}</span>
+                </div>
+                <Button variant="outline" size="sm" disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="border-amber-200 text-amber-800 font-bold px-5 h-10 rounded-xl bg-white shadow-sm transition-all active:scale-95">Вперед</Button>
               </div>
             </div>
           </div>
@@ -431,48 +436,40 @@ function AppContent() {
 
         {isDetailsOpen && selectedPetForDetails && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-              <div className="flex justify-between items-center p-5 border-b bg-amber-50">
-                <h3 className="text-xl font-bold text-amber-900">
-                  {isEditingDetails ? <input className="border border-amber-300 rounded px-2 w-full text-sm outline-none focus:ring-2 focus:ring-amber-500" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /> : selectedPetForDetails.name}
+            <div className="bg-white rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh] border border-amber-50">
+              <div className="flex justify-between items-center p-6 border-b bg-amber-50/50">
+                <h3 className="text-2xl font-bold text-amber-900">
+                  {isEditingDetails ? <input className="border-2 border-amber-200 rounded-xl px-4 py-2 w-full text-lg outline-none focus:border-amber-500 transition-all" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /> : selectedPetForDetails.name}
                 </h3>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   {isAdmin && (
                     isEditingDetails ? (
-                      <><Button size="sm" className="bg-emerald-600 text-white" onClick={handleSaveDetails}>Зберегти</Button><Button size="sm" variant="outline" onClick={() => setIsEditingDetails(false)}>Скасувати</Button></>
+                      <><Button size="sm" className="bg-emerald-600 text-white font-bold rounded-lg px-4 h-9 shadow-sm" onClick={handleSaveDetails}>Зберегти</Button><Button size="sm" variant="outline" className="rounded-lg h-9" onClick={() => setIsEditingDetails(false)}>Скасувати</Button></>
                     ) : (
-                      <><Button size="sm" variant="outline" onClick={() => setIsEditingDetails(true)} className="text-amber-700 border-amber-200">Редагувати</Button><Button size="sm" variant="outline" className="text-red-600 border-red-200" onClick={() => { handleDeletePet(selectedPetForDetails.id); setIsDetailsOpen(false); }}>Видалити</Button></>
+                      <><Button size="sm" variant="outline" className="text-amber-700 border-amber-200 font-bold rounded-lg h-9 bg-white" onClick={() => setIsEditingDetails(true)}>Редагувати</Button><Button size="sm" variant="outline" className="text-red-600 border-red-100 font-bold rounded-lg h-9 bg-white" onClick={() => { handleDeletePet(selectedPetForDetails.id); setIsDetailsOpen(false); }}>Видалити</Button></>
                     )
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => setIsDetailsOpen(false)} className="text-slate-400 hover:text-slate-600"><X className="w-5 h-5" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => setIsDetailsOpen(false)} className="text-slate-400 hover:text-slate-600 hover:bg-amber-100 rounded-full p-2"><X className="w-6 h-6" /></Button>
                 </div>
               </div>
-              <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-8 overflow-y-auto">
-                <div className="space-y-4">
-                  <img src={selectedPetForDetails.photo_url || selectedPetForDetails.imageUrl} className="w-full aspect-square object-cover rounded-xl shadow-sm border border-amber-100" alt="pet" />
-                  {isEditingDetails && <input className="w-full border border-amber-200 rounded px-3 py-2 text-xs" value={editForm.photo_url || ''} onChange={e => setEditForm({ ...editForm, photo_url: e.target.value })} placeholder="URL фото" />}
+              <div className="p-8 grid grid-cols-1 md:grid-cols-2 gap-10 overflow-y-auto">
+                <div className="space-y-6">
+                  <img src={selectedPetForDetails.photo_url || selectedPetForDetails.imageUrl} className="w-full aspect-square object-cover rounded-3xl shadow-lg border-4 border-white" alt="pet" />
+                  {isEditingDetails && <div className="space-y-2"><p className="text-[10px] font-bold text-amber-800 uppercase tracking-widest ml-1">URL Фотографії</p><input className="w-full border-2 border-amber-100 rounded-xl px-4 py-3 text-xs outline-none focus:border-amber-500 transition-all" value={editForm.photo_url || ''} onChange={e => setEditForm({ ...editForm, photo_url: e.target.value })} placeholder="Вставте посилання на фото" /></div>}
                 </div>
-                <div className="space-y-4 text-sm text-slate-700">
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Стать</span>{isEditingDetails ? <input className="border border-amber-100 rounded px-2 py-1 text-xs" value={editForm.sex || ''} onChange={e => setEditForm({ ...editForm, sex: e.target.value })} /> : <span className="font-medium">{selectedPetForDetails.sex || 'Не вказано'}</span>}</div>
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Вік</span>{isEditingDetails ? <input type="number" className="border border-amber-100 rounded px-2 py-1 text-xs" value={editForm.age_months || 0} onChange={e => setEditForm({ ...editForm, age_months: parseInt(e.target.value) })} /> : <span className="font-medium">{selectedPetForDetails.age_months} міс.</span>}</div>
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Розмір</span>{isEditingDetails ? <input className="border border-amber-100 rounded px-2 py-1 text-xs" value={editForm.size || ''} onChange={e => setEditForm({ ...editForm, size: e.target.value })} /> : <span className="font-medium">{selectedPetForDetails.size || 'Не вказано'}</span>}</div>
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Вага</span>{isEditingDetails ? <input type="number" className="border border-amber-100 rounded px-2 py-1 text-xs" value={editForm.weight_kg || ''} onChange={e => setEditForm({ ...editForm, weight_kg: parseFloat(e.target.value) })} /> : <span className="font-medium">{selectedPetForDetails.weight_kg ? `${selectedPetForDetails.weight_kg} кг` : 'Не вказано'}</span>}</div>
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Колір</span>{isEditingDetails ? <input className="border border-amber-100 rounded px-2 py-1 text-xs" value={editForm.color || ''} onChange={e => setEditForm({ ...editForm, color: e.target.value })} /> : <span className="font-medium">{selectedPetForDetails.color || 'Не вказано'}</span>}</div>
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Стерилізація</span>{isEditingDetails ? <input type="checkbox" checked={editForm.sterilized || false} onChange={e => setEditForm({ ...editForm, sterilized: e.target.checked })} /> : <span className="font-medium">{selectedPetForDetails.sterilized ? 'Так' : 'Ні'}</span>}</div>
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Витрати</span><span className="font-bold text-emerald-700">{selectedPetForDetails.monthly_cost} грн/міс</span></div>
-                    <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Статус</span>{isEditingDetails ? <select className="border border-amber-100 rounded px-2 py-1 text-xs bg-white" value={editForm.status || 'available'} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })}><option value="available">Доступний</option><option value="trial">На тріалі</option><option value="adopted">У родині</option></select> : <span className="font-bold text-amber-600">{selectedPetForDetails.status}</span>}</div>
+                <div className="space-y-8 text-sm text-slate-700">
+                  <div className="grid grid-cols-2 gap-x-6 gap-y-6">
+                    <div className="flex flex-col space-y-1.5"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest flex items-center gap-1.5"><Heart className="w-3 h-3" /> Стать</span>{isEditingDetails ? <input className="border border-amber-100 rounded-lg px-2.5 py-1.5 text-xs bg-white" value={editForm.sex || ''} onChange={e => setEditForm({ ...editForm, sex: e.target.value })} /> : <span className="font-bold text-slate-800">{selectedPetForDetails.sex || 'Не вказано'}</span>}</div>
+                    <div className="flex flex-col space-y-1.5"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest flex items-center gap-1.5"><Calendar className="w-3 h-3" /> Вік</span>{isEditingDetails ? <input type="number" className="border border-amber-100 rounded-lg px-2.5 py-1.5 text-xs bg-white" value={editForm.age_months || 0} onChange={e => setEditForm({ ...editForm, age_months: parseInt(e.target.value) })} /> : <span className="font-bold text-slate-800">{selectedPetForDetails.age_months} міс.</span>}</div>
+                    <div className="flex flex-col space-y-1.5"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest flex items-center gap-1.5"><DollarSign className="w-3 h-3" /> Витрати</span><span className="font-bold text-emerald-700">{selectedPetForDetails.monthly_cost} грн/міс</span></div>
+                    <div className="flex flex-col space-y-1.5"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest flex items-center gap-1.5"><Activity className="w-3 h-3" /> Статус</span>{isEditingDetails ? <select className="border border-amber-100 rounded-lg px-2.5 py-1.5 text-xs bg-white font-bold" value={editForm.status || 'available'} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })}><option value="available">Доступний</option><option value="trial">На тріалі</option><option value="adopted">У родині</option></select> : <span className="font-bold text-amber-600 uppercase tracking-tight">{selectedPetForDetails.status === 'available' ? 'Доступний' : selectedPetForDetails.status === 'trial' ? 'На тріалі' : 'У родині'}</span>}</div>
                   </div>
-                  <div className="flex flex-col"><span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-1">Здоров'я</span>{isEditingDetails ? <input className="border border-amber-100 rounded px-2 py-1 text-xs" value={editForm.health_status || ''} onChange={e => setEditForm({ ...editForm, health_status: e.target.value })} /> : <span>{selectedPetForDetails.health_status || 'В нормі'}</span>}</div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-2">Темперамент</span>
-                    <div className="flex flex-wrap gap-1">
-                      {selectedPetForDetails.temperament_tags?.map(t => <span key={t} className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full">{t}</span>)}
+                  <div className="pt-6 border-t border-amber-100">
+                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-widest mb-3 flex items-center gap-1.5"><Info className="w-3 h-3" /> Опис та темперамент</span>
+                    <div className="flex flex-wrap gap-1.5 mb-4">
+                      {selectedPetForDetails.temperament_tags?.map(t => <span key={t} className="bg-amber-100 text-amber-800 text-[10px] px-2.5 py-1 rounded-full font-bold">{t}</span>)}
                     </div>
-                  </div>
-                  <div className="pt-2 border-t border-amber-100">
-                    <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider mb-2 block">Опис</span>
-                    <p className="text-slate-600 leading-relaxed text-xs italic bg-amber-50/30 p-3 rounded-lg border border-amber-50">"{selectedPetForDetails.description}"</p>
+                    <p className="text-slate-600 leading-relaxed text-xs bg-amber-50/40 p-5 rounded-2xl border border-amber-100/50 italic font-medium">"{selectedPetForDetails.description}"</p>
                   </div>
                 </div>
               </div>
@@ -482,38 +479,38 @@ function AppContent() {
       </main>
 
       {selectedPet && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
-            <div className="flex justify-between items-center mb-5 pb-3 border-b border-amber-50"><h3 className="font-bold text-amber-900 text-lg">{adoptionType === "trial" ? "Тріал (знайомство)" : "Усиновлення"}</h3><Button variant="ghost" onClick={() => setSelectedPet(null)} className="text-slate-400"><X className="w-5 h-5" /></Button></div>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-amber-50">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b border-amber-50"><h3 className="font-bold text-amber-900 text-xl">{adoptionType === "trial" ? "Тріал" : "Усиновлення"}</h3><Button variant="ghost" onClick={() => setSelectedPet(null)} className="text-slate-400 hover:bg-amber-50 rounded-full p-2"><X className="w-6 h-6" /></Button></div>
             <AdoptionForm pet={selectedPet} adoptionType={adoptionType} onSubmit={handleFormSubmit} onCancel={() => setSelectedPet(null)} />
           </div>
         </div>
       )}
 
-      {showToast && <div className="fixed bottom-6 right-6 bg-emerald-600 text-white px-8 py-4 rounded-xl shadow-2xl z-[100] animate-in slide-in-from-bottom font-bold">Успішно!</div>}
+      {showToast && <div className="fixed bottom-8 right-8 bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl z-[100] animate-in slide-in-from-bottom flex items-center gap-3 font-bold border border-emerald-500/50">Успішно виконано! ✨</div>}
       
       {showDonateModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-8 shadow-2xl border border-amber-100">
-            <div className="flex justify-between items-center mb-6 text-center">
-              <h3 className="text-xl font-bold text-amber-900 w-full ml-4">Підтримати нас</h3>
-              <Button variant="ghost" onClick={() => setShowDonateModal(false)} className="text-slate-400 hover:bg-amber-50 rounded-full"><X className="w-5 h-5" /></Button>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl max-w-sm w-full p-10 shadow-2xl border border-amber-100">
+            <div className="flex justify-between items-center mb-8">
+              <h3 className="text-2xl font-bold text-amber-900 text-center w-full ml-6">Підтримати нас</h3>
+              <Button variant="ghost" onClick={() => setShowDonateModal(false)} className="text-slate-400 hover:bg-amber-50 rounded-full p-2"><X className="w-6 h-6" /></Button>
             </div>
-            <div className="space-y-6">
-              <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-8">
+              <div className="grid grid-cols-3 gap-3">
                 {[50, 100, 200, 500, 1000].map(amount => (
-                  <Button key={amount} variant={donateAmount === amount ? "default" : "outline"} className={donateAmount === amount ? "bg-amber-600 text-white font-bold h-11 border-none shadow-md" : "border-amber-200 text-amber-800 h-11 hover:bg-amber-50 font-medium"} onClick={() => setDonateAmount(amount)}>{amount}</Button>
+                  <Button key={amount} variant={donateAmount === amount ? "default" : "outline"} className={donateAmount === amount ? "bg-amber-600 text-white font-bold h-12 border-none shadow-md" : "border-amber-200 text-amber-800 h-12 hover:bg-amber-50 font-bold"} onClick={() => setDonateAmount(amount)}>{amount}</Button>
                 ))}
                 <div className="relative">
-                  <Input type="number" placeholder="Сума" value={donateAmount} onChange={(e) => setDonateAmount(Number(e.target.value))} className="border-amber-200 h-11 text-xs focus:ring-amber-500 shadow-sm" />
+                  <Input type="number" placeholder="Сума" value={donateAmount} onChange={(e) => setDonateAmount(Number(e.target.value))} className="border-amber-100 h-12 text-center font-bold focus:ring-amber-500 rounded-xl" />
                 </div>
               </div>
-              <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 flex items-center gap-3">
-                <div className="text-2xl">🐾</div>
-                <p className="text-xs text-amber-800 font-medium leading-relaxed italic">Кожна ваша гривня допомагає нашим пухнастикам.</p>
+              <div className="bg-amber-50 p-5 rounded-2xl border border-amber-100 flex items-center gap-4">
+                <div className="text-3xl">🐾</div>
+                <p className="text-[11px] text-amber-800 font-bold leading-normal italic text-center">Кожна гривня допомагає нам рятувати пухнастиків!</p>
               </div>
-              <Button className="w-full bg-emerald-600 text-white font-bold h-14 shadow-lg hover:bg-emerald-700 rounded-xl" onClick={handleDonate} disabled={isDonating}>
-                {isDonating ? "Зачекайте..." : `Сплатити ${donateAmount} грн 💛`}
+              <Button className="w-full bg-emerald-600 text-white font-bold h-16 shadow-xl hover:bg-emerald-700 rounded-2xl transition-all transform hover:scale-[1.03] active:scale-95 text-lg" onClick={handleDonate} disabled={isDonating}>
+                {isDonating ? "Зачекайте..." : <>Сплатити {donateAmount} грн 💛</>}
               </Button>
             </div>
           </div>
@@ -521,13 +518,13 @@ function AppContent() {
       )}
 
       {showAddPet && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-amber-100">
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl border border-amber-100 scrollbar-hide">
             <AddPetForm onSubmit={handleAddPet} onCancel={() => setShowAddPet(false)} />
           </div>
         </div>
       )}
-      <footer className="bg-white border-t border-amber-50 mt-20 py-10 text-center text-slate-500 text-[10px] font-medium tracking-widest uppercase">© 2026 AdoptMe Dnipro</footer>
+      <footer className="bg-white border-t border-amber-100 mt-24 py-12 text-center text-slate-400 text-[10px] font-bold tracking-widest uppercase px-4">© 2026 AdoptMe Dnipro</footer>
     </div>
   );
 }
