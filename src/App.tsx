@@ -495,32 +495,13 @@ function AppContent() {
 
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
                     <h3 className="text-lg font-semibold text-amber-900 mb-3">На тріалі</h3>
-                    <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
-                      <h3 className="text-lg font-semibold text-amber-900 mb-3">На тріалі</h3>
-                      <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar">
-                        {/* Фільтруємо всіх тваринок, які мають статус 'trial' */}
-                        {pets.filter(p => p.status === "trial").map(pet => (
-                          <div key={pet.id} className="p-3 rounded-lg border border-amber-200 bg-amber-50 shadow-sm flex justify-between items-center animate-fade-in">
-                            <div>
-                              <p className="font-bold text-amber-900">{pet.name}</p>
-                              <p className="text-[10px] text-amber-600 font-semibold uppercase">Випробувальний термін</p>
-                            </div>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleReturnPetFromTrial(pet.id)}
-                              className="text-amber-700 border-amber-300 hover:bg-amber-100 h-8 text-xs"
-                            >
-                              Повернути
-                            </Button>
-                          </div>
-                        ))}
-
-                        {/* Повідомлення, якщо список порожній */}
-                        {pets.filter(p => p.status === "trial").length === 0 && (
-                          <p className="text-sm text-slate-500 italic text-center py-2">Зараз немає тваринок на тріалі</p>
-                        )}
-                      </div>
+                    <div className="space-y-2">
+                      {pets.filter(p => p.status === "trial").map(pet => (
+                        <div key={pet.id} className="flex items-center justify-between p-2 border rounded bg-amber-50">
+                          <span className="text-sm">{pet.name}</span>
+                          <Button size="sm" variant="outline" onClick={() => handleReturnPetFromTrial(pet.id)}>Повернути</Button>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 </>

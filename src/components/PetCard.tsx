@@ -67,30 +67,55 @@ export function PetCard({ pet, onTrialDay, onAdopt, isAdmin, isBooked = false, o
         </div>
       </CardContent>
       <CardFooter className="flex flex-col gap-2 pt-0">
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1 border-amber-300 text-amber-800 hover:bg-amber-50"
-            onClick={(e) => {
-              e.stopPropagation();
-              onTrialDay(pet);
-            }}
-            disabled={isBooked}
-          >
-            Тестовий день
-          </Button>
-          <Button
-            className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-            onClick={(e) => {
-              e.stopPropagation();
-              onAdopt(pet);
-            }}
-            disabled={isBooked}
-          >
-            {isBooked ? "Заброньовано" : "Забрати додому"}
-          </Button>
-        </div>
-
+        {!isAdmin && (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1 border-amber-300 text-amber-800 hover:bg-amber-50"
+              onClick={(e) => {
+                e.stopPropagation();
+                onTrialDay(pet);
+              }}
+              disabled={isBooked}
+            >
+              Тестовий день
+            </Button>
+            <Button
+              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAdopt(pet);
+              }}
+              disabled={isBooked}
+            >
+              {isBooked ? "Заброньовано" : "Забрати додому"}
+            </Button>
+          </div>
+        )}
+        {isAdmin && (
+          <div className="flex gap-2">
+            <Button
+              variant="ghost"
+              className="flex-1 text-slate-700"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(pet);
+              }}
+            >
+              Редагувати
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 text-red-600 border-red-300"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete?.(pet.id);
+              }}
+            >
+              Видалити
+            </Button>
+          </div>
+        )}
       </CardFooter>
     </Card>
   );
