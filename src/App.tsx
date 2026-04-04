@@ -295,6 +295,7 @@ function AppContent() {
       await apiCall(`/applications/${appId}/approve`, "PATCH", {}, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
       loadAllApplications();
+      loadPets(); // Оновлюємо список тварин, щоб погоджені з'явилися "На тріалі"
     } catch (error) { alert("Помилка при схваленні"); }
   };
 

@@ -138,7 +138,7 @@ export function Matchmaker({ pets, onMatch, onAiFilter }: MatchmakerProps) {
               <Button
                 onClick={handleSendMessage}
                 disabled={loading || !input.trim()}
-                className="bg-amber-600 hover:bg-amber-700 p-2 h-auto"
+                className="bg-amber-600 hover:bg-amber-700 p-2 h-auto flex items-center justify-center"
                 title="Відправити (Shift+Enter)"
               >
                 <Send className="w-4 h-4" />
