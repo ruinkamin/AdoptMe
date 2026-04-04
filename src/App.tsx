@@ -10,7 +10,6 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { apiCall } from "./utils/api";
 import { initialPets } from "./data/pets";
 
-
 function AppContent() {
   const { user, token, loading, login, register, logout } = useAuth();
   const [pets, setPets] = useState<Pet[]>(initialPets);
@@ -33,15 +32,15 @@ function AppContent() {
   const [authError, setAuthError] = useState("");
   const [authLoading, setAuthLoading] = useState(false);
 
-  //Donation
+  // Донати
   const [showDonateModal, setShowDonateModal] = useState(false);
   const [donateAmount, setDonateAmount] = useState<number>(100);
   const [isDonating, setIsDonating] = useState(false);
 
-  //Filter
+  // Фільтри
   const [aiFilteredPetIds, setAiFilteredPetIds] = useState<string[] | null>(null);
 
-  // Pagination
+  // Пагінація
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const ITEMS_PER_PAGE = 6;
@@ -69,7 +68,9 @@ function AppContent() {
       name: raw.name || "",
       sex: raw.sex || "",
       description: raw.description || "",
+      age_months: ageMonths,
       size: raw.size || "",
+      weight_kg: raw.weight_kg,
       color: raw.color || "",
       sterilized: raw.sterilized ?? false,
       temperament_tags: temperamentTags,
@@ -79,16 +80,8 @@ function AppContent() {
       photo_url: raw.photo_url || raw.imageUrl || "",
       monthly_cost: raw.monthly_cost ?? raw.estimatedCost ?? 0,
       status: raw.status || "available",
-      age: raw.age,
-      breed: raw.breed,
-      temperament: raw.temperament,
-      imageUrl: raw.imageUrl,
-      estimatedCost: raw.estimatedCost,
-      timeNeeded: raw.timeNeeded,
-      costBreakdown: raw.costBreakdown,
+      deleted_at: raw.deleted_at
     };
-    if (typeof ageMonths === "number" && !Number.isNaN(ageMonths)) normalizedPet.age_months = Math.round(ageMonths);
-    if (typeof raw.weight_kg === "number") normalizedPet.weight_kg = raw.weight_kg;
     return normalizedPet;
   };
 
@@ -117,15 +110,11 @@ function AppContent() {
       const serverPetsRaw: any[] = Array.isArray(data) ? data : (data.data || []);
 
       if (serverPetsRaw.length > 0) {
-        // Дані з бекенду вже поділені на сторінки, просто нормалізуємо їх
         const normalized = serverPetsRaw.map(normalizePet).filter(p => !p.deleted_at);
         setPets(normalized);
-
-        // Отримуємо загальну кількість для пагінації
         const totalCount = data.total || data.meta?.total || normalized.length;
         setTotalPages(Math.max(1, Math.ceil(totalCount / ITEMS_PER_PAGE)));
       } else {
-        // Фолбек на локальні дані (якщо бекенд пустий)
         const start = (currentPage - 1) * ITEMS_PER_PAGE;
         setPets(initialPets.slice(start, start + ITEMS_PER_PAGE));
         setTotalPages(Math.max(1, Math.ceil(initialPets.length / ITEMS_PER_PAGE)));
@@ -256,14 +245,10 @@ function AppContent() {
   const handleAddPet = async (petData: any) => {
     if (!token) return;
     try {
-      // petData приходить вже з правильними полями з нової форми
       await apiCall("/pets", "POST", petData, token);
-      setShowAddPet(false);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      setShowAddPet(false); setShowToast(true); setTimeout(() => setShowToast(false), 3000);
       loadPets();
     } catch (error) {
-      alert("Помилка при додаванні. Перевірте консоль для деталей.");
       console.error("Add Pet Error:", error);
     }
   };
@@ -271,39 +256,26 @@ function AppContent() {
   const handleUpdatePet = async (updated: any) => {
     if (!token) return;
     try {
-      // Підготовка масивів тегів (якщо вони редагувалися як строка через кому)
       const parseTags = (tags: any) => {
         if (Array.isArray(tags)) return tags;
         if (typeof tags === 'string') return tags.split(',').map(t => t.trim()).filter(Boolean);
         return [];
       };
-
       const payload = {
-        type: updated.type,
-        name: updated.name,
-        sex: updated.sex,
-        description: updated.description,
-        age_months: Number(updated.age_months) || 0,
-        size: updated.size,
+        type: updated.type, name: updated.name, sex: updated.sex, description: updated.description,
+        age_months: Number(updated.age_months) || 0, size: updated.size,
         weight_kg: updated.weight_kg ? Number(updated.weight_kg) : null,
-        color: updated.color,
-        sterilized: Boolean(updated.sterilized),
+        color: updated.color, sterilized: Boolean(updated.sterilized),
         temperament_tags: parseTags(updated.temperament_tags),
-        health_status: updated.health_status,
-        medical_conditions: updated.medical_conditions,
+        health_status: updated.health_status, medical_conditions: updated.medical_conditions,
         ideal_owner_tags: parseTags(updated.ideal_owner_tags),
-        breed_visual: updated.breed_visual,
-        photo_url: updated.photo_url || updated.imageUrl,
-        monthly_cost: Number(updated.monthly_cost) || 0,
-        status: updated.status || "available"
+        breed_visual: updated.breed_visual, photo_url: updated.photo_url || updated.imageUrl,
+        monthly_cost: Number(updated.monthly_cost) || 0, status: updated.status || "available"
       };
-
       await apiCall(`/pets/${updated.id}`, "PUT", payload, token);
-      setShowToast(true);
-      setTimeout(() => setShowToast(false), 3000);
+      setShowToast(true); setTimeout(() => setShowToast(false), 3000);
       loadPets();
     } catch (error) {
-      alert("Помилка при редагуванні.");
       console.error("Update Pet Error:", error);
     }
   };
@@ -316,8 +288,6 @@ function AppContent() {
       loadPets();
     } catch (error) { alert("Помилка при видаленні"); }
   };
-
-
 
   const handleApproveApplication = async (appId: string) => {
     if (!token) return;
@@ -412,9 +382,11 @@ function AppContent() {
             <div className="lg:col-span-1 space-y-6">
               {!isAdmin ? (
                 <>
+                  {/* Фільтри */}
                   <Matchmaker pets={pets} onMatch={handleAdopt} onAiFilter={(ids) => setAiFilteredPetIds(ids.length > 0 ? ids : null)} />
-                  {applications.length > 0 ? (
-                    <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm animate-fade-in">
+                  {/* Заявки користувача */}
+                  {applications.length > 0 && (
+                    <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
                       <h3 className="text-lg font-semibold text-amber-900 mb-3">Мої заявки</h3>
                       <div className="space-y-3">
                         {applications.map(app => (
@@ -422,68 +394,34 @@ function AppContent() {
                             <div>
                               <p className="text-sm font-bold text-amber-900">{app.pet_name || "Тваринка"}</p>
                               <p className="text-[10px] text-slate-500">📅 {app.booking_date} {app.booking_time}</p>
-                              <p className="text-xs mt-1">
-                                Статус:
-                                <span className={`ml-1 font-medium ${app.status === "approved" ? "text-emerald-600" :
-                                  app.status === "rejected" ? "text-red-500" : "text-amber-600"
-                                  }`}>
-                                  {app.status === "pending" ? "Очікування" :
-                                    app.status === "approved" ? "Схвалено" : "Відхилено"}
-                                </span>
-                              </p>
+                              <p className="text-xs mt-1">Статус: <span className={`font-medium ${app.status === "approved" ? "text-emerald-600" : app.status === "rejected" ? "text-red-500" : "text-amber-600"}`}>{app.status === "pending" ? "Очікування" : app.status === "approved" ? "Схвалено" : "Відхилено"}</span></p>
                             </div>
-                            {/* Кнопка видалення/скасування заявки */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteApplication(app.id)}
-                              className="text-red-400 hover:text-red-600 hover:bg-red-50 p-1 h-auto"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => handleDeleteApplication(app.id)} className="text-red-400 hover:text-red-600 p-1 h-auto"><X className="w-4 h-4" /></Button>
                           </div>
                         ))}
                       </div>
-                    </div>
-                  ) : (
-                    <div className="bg-white rounded-xl p-6 border border-amber-200 text-center">
-                      <p className="text-sm text-slate-500">У вас поки немає поданих заявок.</p>
                     </div>
                   )}
                 </>
               ) : (
                 <>
-                  {/* ПУНКТ 1: Оновлений блок заявок для адміна */}
+                  {/* Заявки для адміна */}
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
                     <h3 className="text-lg font-semibold text-amber-900 mb-3">Заявки (Очікують)</h3>
                     {allApplications.filter(app => app.status === 'pending').length > 0 ? (
-                      <div className="space-y-3 max-h-[600px] overflow-y-auto custom-scrollbar">
+                      <div className="space-y-3 max-h-[600px] overflow-y-auto">
                         {allApplications.filter(app => app.status === 'pending').map(app => (
-                          <div key={app.id} className="p-3 rounded-lg border border-amber-200 bg-amber-50 shadow-sm transition-all">
-                            <div
-                              className="flex justify-between items-center cursor-pointer"
-                              onClick={() => setExpandedAppId(expandedAppId === app.id ? null : app.id)}
-                            >
-                              <div>
-                                <p className="font-bold text-amber-900">{app.pet_name}</p>
-                                <p className="text-xs text-slate-600">Від: {app.user_name || app.full_name}</p>
-                              </div>
-                              <div className="bg-white p-1 rounded-full shadow-sm">
-                                {expandedAppId === app.id ? <ChevronUp className="w-4 h-4 text-amber-600" /> : <ChevronDown className="w-4 h-4 text-amber-600" />}
-                              </div>
+                          <div key={app.id} className="p-3 rounded-lg border border-amber-200 bg-amber-50 shadow-sm">
+                            <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedAppId(expandedAppId === app.id ? null : app.id)}>
+                              <div><p className="font-bold text-amber-900">{app.pet_name}</p><p className="text-xs text-slate-600">Від: {app.user_name || app.full_name}</p></div>
+                              <div className="bg-white p-1 rounded-full shadow-sm">{expandedAppId === app.id ? <ChevronUp className="w-4 h-4 text-amber-600" /> : <ChevronDown className="w-4 h-4 text-amber-600" />}</div>
                             </div>
-
                             {expandedAppId === app.id && (
-                              <div className="mt-3 pt-3 border-t border-amber-200 text-sm space-y-2 animate-fade-in">
-                                <p>📞 {app.phone}</p>
-                                <p>🏠 {app.address}</p>
-                                <p>📅 {app.booking_date} {app.booking_time}</p>
-                                <p>Тип: <span className="font-semibold">{app.type === 'trial_day' ? 'Тестовий день' : 'Усиновлення'}</span></p>
-                                <p>👨‍👩‍👧‍👦 Діти: {app.has_children ? "Так" : "Ні"} | 🐾 Тварини: {app.has_other_pets ? "Так" : "Ні"}</p>
-
+                              <div className="mt-3 pt-3 border-t border-amber-200 text-xs space-y-2">
+                                <p>📞 {app.phone}</p><p>🏠 {app.address}</p><p>📅 {app.booking_date} {app.booking_time}</p><p>Тип: {app.type === 'trial_day' ? 'Тріал' : 'Усиновлення'}</p><p>👨‍👩‍👧‍👦 Діти: {app.has_children ? "Так" : "Ні"} | 🐾 Тварини: {app.has_other_pets ? "Так" : "Ні"}</p>
                                 <div className="flex gap-2 mt-4">
-                                  <Button size="sm" onClick={() => handleApproveApplication(app.id)} className="flex-1 bg-emerald-600 text-white hover:bg-emerald-700">Погодити</Button>
-                                  <Button size="sm" variant="outline" onClick={() => handleRejectApplication(app.id)} className="flex-1 text-red-600 border-red-300 hover:bg-red-50">Відхилити</Button>
+                                  <Button size="sm" onClick={() => handleApproveApplication(app.id)} className="flex-1 bg-emerald-600 text-white">Погодити</Button>
+                                  <Button size="sm" variant="outline" onClick={() => handleRejectApplication(app.id)} className="flex-1 text-red-600 border-red-300">Відхилити</Button>
                                 </div>
                               </div>
                             )}
@@ -492,7 +430,7 @@ function AppContent() {
                       </div>
                     ) : <p className="text-sm text-slate-500">Немає нових заявок.</p>}
                   </div>
-
+                  {/* Тварини на тріалі */}
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
                     <h3 className="text-lg font-semibold text-amber-900 mb-3">На тріалі</h3>
                     <div className="space-y-2">
@@ -511,17 +449,15 @@ function AppContent() {
             <div className="lg:col-span-2">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-amber-900">Наші улюбленці</h2>
-                {isAdmin && (
-                  <Button onClick={() => setShowAddPet(true)} className="bg-amber-600 hover:bg-amber-700 text-white">
-                    <Plus className="w-4 h-4 mr-2" /> Додати тварину
-                  </Button>
-                )}
+                {isAdmin && <Button onClick={() => setShowAddPet(true)} className="bg-amber-600 text-white"><Plus className="w-4 h-4 mr-2" /> Додати</Button>}
               </div>
+              {/* Картки з тваринами */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {(aiFilteredPetIds ? pets.filter(pet => aiFilteredPetIds.includes(pet.id)) : pets).map((pet) => (
                   <PetCard key={pet.id} pet={pet} onTrialDay={handleTrialDay} onAdopt={handleAdopt} onSelect={handleOpenPetDetails} isAdmin={isAdmin} onDelete={handleDeletePet} onEdit={setEditingPet} />
                 ))}
               </div>
+              {/* Пагінація */}
               <div className="flex justify-between mt-8">
                 <Button variant="outline" disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)}><ChevronLeft className="w-4 h-4" /></Button>
                 <span className="text-sm">Сторінка {currentPage} з {totalPages}</span>
@@ -531,182 +467,46 @@ function AppContent() {
           </div>
         )}
 
-        {/* ПУНКТ 3: Модальне вікно тваринки з режимом редагування */}
+        {/* Деталі тварини */}
         {isDetailsOpen && selectedPetForDetails && (
           <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 backdrop-blur-sm">
             <div className="bg-white rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
-              {/* Хедер модалки */}
               <div className="flex justify-between items-center p-4 border-b bg-amber-50">
                 <h3 className="text-xl font-bold text-amber-900 w-1/2">
-                  {isEditingDetails ? (
-                    <input className="border border-amber-300 rounded-lg px-3 py-1.5 w-full bg-white" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} placeholder="Ім'я" />
-                  ) : (
-                    selectedPetForDetails.name
-                  )}
+                  {isEditingDetails ? <input className="border rounded-lg px-3 py-1.5 w-full" value={editForm.name || ''} onChange={e => setEditForm({ ...editForm, name: e.target.value })} /> : selectedPetForDetails.name}
                 </h3>
-
                 <div className="flex items-center gap-2">
                   {isAdmin && (
-                    <>
-                      {isEditingDetails ? (
-                        <>
-                          <Button size="sm" className="bg-emerald-600 text-white" onClick={handleSaveDetails}>Зберегти</Button>
-                          <Button size="sm" variant="outline" onClick={() => setIsEditingDetails(false)}>Скасувати</Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="outline" className="text-amber-700 border-amber-300" onClick={() => setIsEditingDetails(true)}>Редагувати</Button>
-                          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={() => {
-                            handleDeletePet(selectedPetForDetails.id);
-                            setIsDetailsOpen(false);
-                          }}>Видалити</Button>
-                        </>
-                      )}
-                    </>
+                    isEditingDetails ? (
+                      <><Button size="sm" className="bg-emerald-600 text-white" onClick={handleSaveDetails}>Зберегти</Button><Button size="sm" variant="outline" onClick={() => setIsEditingDetails(false)}>Скасувати</Button></>
+                    ) : (
+                      <><Button size="sm" variant="outline" onClick={() => setIsEditingDetails(true)}>Редагувати</Button><Button size="sm" variant="outline" className="text-red-600 border-red-300" onClick={() => { handleDeletePet(selectedPetForDetails.id); setIsDetailsOpen(false); }}>Видалити</Button></>
+                    )
                   )}
-                  <Button variant="ghost" size="sm" onClick={() => setIsDetailsOpen(false)}><X className="w-5 h-5 text-slate-500" /></Button>
+                  <Button variant="ghost" size="sm" onClick={() => setIsDetailsOpen(false)}><X className="w-5 h-5" /></Button>
                 </div>
               </div>
-
-              {/* Тіло модалки */}
               <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 overflow-y-auto">
-                {/* Фото */}
                 <div className="space-y-4">
-                  <img src={isEditingDetails ? (editForm.photo_url || editForm.imageUrl) : (selectedPetForDetails.photo_url || selectedPetForDetails.imageUrl)} className="w-full h-72 object-cover rounded-xl shadow-sm" alt="pet" />
-                  {isEditingDetails && (
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-amber-900">URL Фото:</label>
-                      <input className="w-full border border-amber-200 rounded-lg px-3 py-2 text-sm" placeholder="https://..." value={editForm.photo_url || editForm.imageUrl || ''} onChange={e => setEditForm({ ...editForm, photo_url: e.target.value, imageUrl: e.target.value })} />
-                    </div>
-                  )}
+                  <img src={isEditingDetails ? (editForm.photo_url || editForm.imageUrl) : (selectedPetForDetails.photo_url || selectedPetForDetails.imageUrl)} className="w-full h-72 object-cover rounded-xl" alt="pet" />
+                  {isEditingDetails && <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="URL Фото" value={editForm.photo_url || editForm.imageUrl || ''} onChange={e => setEditForm({ ...editForm, photo_url: e.target.value, imageUrl: e.target.value })} />}
                 </div>
-
-                {/* Інформація */}
                 <div className="space-y-4 text-sm text-slate-700">
-                  <div className="grid grid-cols-2 gap-y-3 gap-x-4">
-                    {/* Основне */}
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Тип:</span>
-                      {isEditingDetails ? (
-                        <select className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.type || ''} onChange={e => setEditForm({ ...editForm, type: e.target.value as 'cat' | 'dog' })}>
-                          <option value="cat">Кіт</option>
-                          <option value="dog">Собака</option>
-                        </select>
-                      ) : <span>{selectedPetForDetails.type === 'cat' ? 'Кіт' : 'Собака'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Порода:</span>
-                      {isEditingDetails ? <input className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.breed_visual || ''} onChange={e => setEditForm({ ...editForm, breed_visual: e.target.value })} /> : <span>{selectedPetForDetails.breed_visual || 'Не вказано'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Стать:</span>
-                      {isEditingDetails ? (
-                        <select className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.sex || ''} onChange={e => setEditForm({ ...editForm, sex: e.target.value })}>
-                          <option value="Хлопчик">Хлопчик</option>
-                          <option value="Дівчинка">Дівчинка</option>
-                          <option value="Невідомо">Невідомо</option>
-                        </select>
-                      ) : <span>{selectedPetForDetails.sex || 'Не вказано'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Вік (міс.):</span>
-                      {isEditingDetails ? <input type="number" className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.age_months || ''} onChange={e => setEditForm({ ...editForm, age_months: parseInt(e.target.value) })} /> : <span>{selectedPetForDetails.age_months} міс.</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Розмір:</span>
-                      {isEditingDetails ? (
-                        <select className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.size || ''} onChange={e => setEditForm({ ...editForm, size: e.target.value })}>
-                          <option value="Малий">Малий</option>
-                          <option value="Середній">Середній</option>
-                          <option value="Великий">Великий</option>
-                        </select>
-                      ) : <span>{selectedPetForDetails.size || 'Не вказано'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Вага (кг):</span>
-                      {isEditingDetails ? <input type="number" step="0.1" className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.weight_kg || ''} onChange={e => setEditForm({ ...editForm, weight_kg: parseFloat(e.target.value) })} /> : <span>{selectedPetForDetails.weight_kg ? `${selectedPetForDetails.weight_kg} кг` : 'Не вказано'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Окрас:</span>
-                      {isEditingDetails ? <input className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.color || ''} onChange={e => setEditForm({ ...editForm, color: e.target.value })} /> : <span>{selectedPetForDetails.color || 'Не вказано'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Стерилізація:</span>
-                      {isEditingDetails ? (
-                        <label className="flex items-center mt-2 cursor-pointer">
-                          <input type="checkbox" className="mr-2 w-4 h-4" checked={editForm.sterilized || false} onChange={e => setEditForm({ ...editForm, sterilized: e.target.checked })} />
-                          Так
-                        </label>
-                      ) : <span>{selectedPetForDetails.sterilized ? 'Так' : 'Ні'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Витрати:</span>
-                      {isEditingDetails ? <input type="number" className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1" value={editForm.monthly_cost || ''} onChange={e => setEditForm({ ...editForm, monthly_cost: parseInt(e.target.value) })} /> : <span>{selectedPetForDetails.monthly_cost || 0} грн/міс</span>}
-                    </div>
+                  <div className="grid grid-cols-2 gap-y-3">
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Тип:</span>{isEditingDetails ? <select className="border rounded px-2 py-1" value={editForm.type || ''} onChange={e => setEditForm({ ...editForm, type: e.target.value as 'cat' | 'dog' })}><option value="cat">Кіт</option><option value="dog">Собака</option></select> : <span>{selectedPetForDetails.type === 'cat' ? 'Кіт' : 'Собака'}</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Порода:</span>{isEditingDetails ? <input className="border rounded px-2 py-1" value={editForm.breed_visual || ''} onChange={e => setEditForm({ ...editForm, breed_visual: e.target.value })} /> : <span>{selectedPetForDetails.breed_visual || 'Не вказано'}</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Вік (міс.):</span>{isEditingDetails ? <input type="number" className="border rounded px-2 py-1" value={editForm.age_months || ''} onChange={e => setEditForm({ ...editForm, age_months: parseInt(e.target.value) })} /> : <span>{selectedPetForDetails.age_months} міс.</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Стерилізація:</span>{isEditingDetails ? <input type="checkbox" checked={editForm.sterilized || false} onChange={e => setEditForm({ ...editForm, sterilized: e.target.checked })} /> : <span>{selectedPetForDetails.sterilized ? 'Так' : 'Ні'}</span>}</div>
                   </div>
-
-                  {/* Медичні дані та теги */}
-                  <div className="pt-3 border-t border-amber-100 space-y-3">
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Стан здоров'я:</span>
-                      {isEditingDetails ? <input className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1 w-full" value={editForm.health_status || ''} onChange={e => setEditForm({ ...editForm, health_status: e.target.value })} /> : <span>{selectedPetForDetails.health_status || 'Без відхилень'}</span>}
-                    </div>
-
-                    {isEditingDetails ? (
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-amber-900">Медичні показання:</span>
-                        <textarea className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1 resize-none" rows={2} value={editForm.medical_conditions || ''} onChange={e => setEditForm({ ...editForm, medical_conditions: e.target.value })} />
-                      </div>
-                    ) : selectedPetForDetails.medical_conditions && (
-                      <div className="flex flex-col">
-                        <span className="font-semibold text-amber-900">Медичні показання:</span>
-                        <span>{selectedPetForDetails.medical_conditions}</span>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Характер (теги через кому):</span>
-                      {isEditingDetails ? (
-                        <input className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1 w-full" placeholder="грайливий, спокійний" value={Array.isArray(editForm.temperament_tags) ? editForm.temperament_tags.join(', ') : (editForm.temperament_tags || '')} onChange={e => setEditForm({ ...editForm, temperament_tags: e.target.value as any })} />
-                      ) : <span>{Array.isArray(selectedPetForDetails.temperament_tags) && selectedPetForDetails.temperament_tags.length > 0 ? selectedPetForDetails.temperament_tags.join(', ') : 'Не вказано'}</span>}
-                    </div>
-
-                    <div className="flex flex-col">
-                      <span className="font-semibold text-amber-900">Ідеальний власник (теги через кому):</span>
-                      {isEditingDetails ? (
-                        <input className="border border-amber-200 rounded-lg px-2 py-1.5 mt-1 w-full" placeholder="без дітей, активний" value={Array.isArray(editForm.ideal_owner_tags) ? editForm.ideal_owner_tags.join(', ') : (editForm.ideal_owner_tags || '')} onChange={e => setEditForm({ ...editForm, ideal_owner_tags: e.target.value as any })} />
-                      ) : <span>{Array.isArray(selectedPetForDetails.ideal_owner_tags) && selectedPetForDetails.ideal_owner_tags.length > 0 ? selectedPetForDetails.ideal_owner_tags.join(', ') : 'Не вказано'}</span>}
-                    </div>
-                  </div>
-
-                  {/* Опис */}
-                  <div className="flex flex-col pt-3 border-t border-amber-100">
-                    <span className="font-semibold text-amber-900 mb-1">Опис:</span>
-                    {isEditingDetails ? (
-                      <textarea rows={5} className="border border-amber-200 rounded-lg px-3 py-2 resize-none w-full" value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} />
-                    ) : (
-                      <p className="leading-relaxed whitespace-pre-wrap">{selectedPetForDetails.description}</p>
-                    )}
-                  </div>
+                  <div className="flex flex-col"><span className="font-semibold text-amber-900">Опис:</span>{isEditingDetails ? <textarea rows={5} className="border rounded px-3 py-2 w-full" value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} /> : <p className="whitespace-pre-wrap">{selectedPetForDetails.description}</p>}</div>
                 </div>
               </div>
             </div>
           </div>
+        )}
+      </main>
 
-        )
-        }
-
-
-      </main >
-
+      {/* Форма замовлення */}
       {selectedPet && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-md w-full p-4 overflow-y-auto max-h-[90vh]">
@@ -717,28 +517,28 @@ function AppContent() {
       )}
 
       {showToast && <div className="fixed bottom-4 right-4 bg-emerald-600 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-in slide-in-from-right">Успішно!</div>}
-      {
-        showDonateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl max-w-sm w-full p-6">
-              <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Донат</h3><Button variant="ghost" onClick={() => setShowDonateModal(false)}><X className="w-4 h-4" /></Button></div>
-              <div className="space-y-4">
-                <input type="number" value={donateAmount} onChange={(e) => setDonateAmount(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2" />
-                <Button className="w-full bg-emerald-600 text-white" onClick={handleDonate} disabled={isDonating}>{isDonating ? "..." : "Сплатити"}</Button>
-              </div>
+      
+      {/* Модалка донату */}
+      {showDonateModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6">
+            <div className="flex justify-between items-center mb-4"><h3 className="text-xl font-bold">Донат</h3><Button variant="ghost" onClick={() => setShowDonateModal(false)}><X className="w-4 h-4" /></Button></div>
+            <div className="space-y-4">
+              <input type="number" value={donateAmount} onChange={(e) => setDonateAmount(Number(e.target.value))} className="w-full border rounded-lg px-3 py-2" />
+              <Button className="w-full bg-emerald-600 text-white" onClick={handleDonate} disabled={isDonating}>{isDonating ? "..." : "Сплатити"}</Button>
             </div>
           </div>
-        )
-      }
-      {
-        showAddPet && (
-          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-              <AddPetForm onSubmit={handleAddPet} onCancel={() => setShowAddPet(false)} />
-            </div>
+        </div>
+      )}
+
+      {/* Форма додавання */}
+      {showAddPet && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <AddPetForm onSubmit={handleAddPet} onCancel={() => setShowAddPet(false)} />
           </div>
-        )
-      }
+        </div>
+      )}
       <footer className="bg-white border-t mt-16 py-8 text-center text-slate-600 text-xs">© 2026 AdoptMe Dnipro.</footer>
     </div >
   );

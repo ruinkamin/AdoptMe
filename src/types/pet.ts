@@ -17,6 +17,7 @@ export interface Pet {
   photo_url?: string;
   monthly_cost?: number;
   status?: "available" | "trial" | "adopted";
+  deleted_at?: string | null;
 
   // TVL backward compatibility
   age?: string;
