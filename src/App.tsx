@@ -295,7 +295,7 @@ function AppContent() {
       await apiCall(`/applications/${appId}/approve`, "PATCH", {}, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
       loadAllApplications();
-      loadPets(); // Оновлюємо список тварин, щоб погоджені з'явилися "На тріалі"
+      loadPets();
     } catch (error) { alert("Помилка при схваленні"); }
   };
 
@@ -379,8 +379,9 @@ function AppContent() {
         )}
 
         {user && (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-6">
+          <div className="flex flex-col lg:flex-row gap-8">
+            {/* Ліва панель */}
+            <div className="w-full lg:w-1/3 space-y-6">
               {!isAdmin ? (
                 <>
                   {/* Фільтри */}
@@ -405,12 +406,12 @@ function AppContent() {
                   )}
                 </>
               ) : (
-                <>
-                  {/* Заявки для адміна */}
+                <div className="sticky top-24 space-y-6">
+                  {/* Заявки для адміна (Фіксовано при скролі) */}
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
                     <h3 className="text-lg font-semibold text-amber-900 mb-3">Заявки (Очікують)</h3>
                     {allApplications.filter(app => app.status === 'pending').length > 0 ? (
-                      <div className="space-y-3 max-h-[600px] overflow-y-auto">
+                      <div className="space-y-3 max-h-[400px] overflow-y-auto">
                         {allApplications.filter(app => app.status === 'pending').map(app => (
                           <div key={app.id} className="p-3 rounded-lg border border-amber-200 bg-amber-50 shadow-sm">
                             <div className="flex justify-between items-center cursor-pointer" onClick={() => setExpandedAppId(expandedAppId === app.id ? null : app.id)}>
@@ -443,14 +444,15 @@ function AppContent() {
                       ))}
                     </div>
                   </div>
-                </>
+                </div>
               )}
             </div>
 
-            <div className="lg:col-span-2">
+            {/* Каталог */}
+            <div className="w-full lg:w-2/3">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-amber-900">Наші улюбленці</h2>
-                {isAdmin && <Button onClick={() => setShowAddPet(true)} className="bg-amber-600 text-white"><Plus className="w-4 h-4 mr-2" /> Додати</Button>}
+                {isAdmin && <Button onClick={() => setShowAddPet(true)} className="bg-amber-600 text-white px-[21px]"><Plus className="w-4 h-4 mr-2" /> Додати</Button>}
               </div>
               {/* Картки з тваринами */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
