@@ -23,6 +23,7 @@ function AppContent() {
   const [editingPet, setEditingPet] = useState<Pet | null>(null);
   const [applications, setApplications] = useState<Application[]>([]);
   const [allApplications, setAllApplications] = useState<Application[]>([]);
+  const [petsOnTrial, setPetsOnTrial] = useState<Pet[]>([]);
   const [expandedAppId, setExpandedAppId] = useState<string | null>(null);
 
   const [isRegisterMode, setIsRegisterMode] = useState(false);
@@ -147,6 +148,16 @@ function AppContent() {
     }
   }, [token]);
 
+  const loadTrialPets = useCallback(async () => {
+    try {
+      const data = await apiCall("/pets?status=trial&per_page=100", "GET", undefined, token || "");
+      const serverPetsRaw: any[] = Array.isArray(data) ? data : (data.data || []);
+      setPetsOnTrial(serverPetsRaw.map(normalizePet));
+    } catch (error) {
+      console.error("Error loading trial pets:", error);
+    }
+  }, [token]);
+
   const loadPetDetails = useCallback(async (petId: string) => {
     try {
       if (petDetailAbortControllerRef.current) petDetailAbortControllerRef.current.abort();
@@ -192,10 +203,14 @@ function AppContent() {
   useEffect(() => { loadPets(); }, [loadPets]);
   useEffect(() => {
     if (token && user) {
-      if (isAdmin) loadAllApplications();
-      else loadMyApplications();
+      if (isAdmin) {
+        loadAllApplications();
+        loadTrialPets();
+      } else {
+        loadMyApplications();
+      }
     }
-  }, [token, user, isAdmin, loadMyApplications, loadAllApplications]);
+  }, [token, user, isAdmin, loadMyApplications, loadAllApplications, loadTrialPets]);
 
   const handleLogin = async (email: string, pass: string) => {
     try {
@@ -295,6 +310,7 @@ function AppContent() {
       await apiCall(`/applications/${appId}/approve`, "PATCH", {}, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
       loadAllApplications();
+      loadTrialPets();
       loadPets();
     } catch (error) { alert("Помилка при схваленні"); }
   };
@@ -322,6 +338,7 @@ function AppContent() {
     try {
       await apiCall(`/pets/${petId}/return`, "PATCH", {}, token);
       setShowToast(true); setTimeout(() => setShowToast(false), 3000);
+      loadTrialPets();
       loadPets();
     } catch (error) { alert("Помилка при поверненні"); }
   };
@@ -436,7 +453,7 @@ function AppContent() {
                   <div className="bg-white rounded-xl p-4 border border-amber-200 shadow-sm">
                     <h3 className="text-lg font-semibold text-amber-900 mb-3">На тріалі</h3>
                     <div className="space-y-2">
-                      {pets.filter(p => p.status === "trial").map(pet => (
+                      {petsOnTrial.map(pet => (
                         <div key={pet.id} className="flex items-center justify-between p-2 border rounded bg-amber-50">
                           <span className="text-sm">{pet.name}</span>
                           <Button size="sm" variant="outline" onClick={() => handleReturnPetFromTrial(pet.id)}>Повернути</Button>
@@ -495,12 +512,22 @@ function AppContent() {
                   {isEditingDetails && <input className="w-full border rounded-lg px-3 py-2 text-sm" placeholder="URL Фото" value={editForm.photo_url || editForm.imageUrl || ''} onChange={e => setEditForm({ ...editForm, photo_url: e.target.value, imageUrl: e.target.value })} />}
                 </div>
                 <div className="space-y-4 text-sm text-slate-700">
-                  <div className="grid grid-cols-2 gap-y-3">
+                  <div className="grid grid-cols-2 gap-x-4 gap-y-3">
                     <div className="flex flex-col"><span className="font-semibold text-amber-900">Тип:</span>{isEditingDetails ? <select className="border rounded px-2 py-1" value={editForm.type || ''} onChange={e => setEditForm({ ...editForm, type: e.target.value as 'cat' | 'dog' })}><option value="cat">Кіт</option><option value="dog">Собака</option></select> : <span>{selectedPetForDetails.type === 'cat' ? 'Кіт' : 'Собака'}</span>}</div>
                     <div className="flex flex-col"><span className="font-semibold text-amber-900">Порода:</span>{isEditingDetails ? <input className="border rounded px-2 py-1" value={editForm.breed_visual || ''} onChange={e => setEditForm({ ...editForm, breed_visual: e.target.value })} /> : <span>{selectedPetForDetails.breed_visual || 'Не вказано'}</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Стать:</span>{isEditingDetails ? <input className="border rounded px-2 py-1" value={editForm.sex || ''} onChange={e => setEditForm({ ...editForm, sex: e.target.value })} /> : <span>{selectedPetForDetails.sex || 'Не вказано'}</span>}</div>
                     <div className="flex flex-col"><span className="font-semibold text-amber-900">Вік (міс.):</span>{isEditingDetails ? <input type="number" className="border rounded px-2 py-1" value={editForm.age_months || ''} onChange={e => setEditForm({ ...editForm, age_months: parseInt(e.target.value) })} /> : <span>{selectedPetForDetails.age_months} міс.</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Розмір:</span>{isEditingDetails ? <input className="border rounded px-2 py-1" value={editForm.size || ''} onChange={e => setEditForm({ ...editForm, size: e.target.value })} /> : <span>{selectedPetForDetails.size || 'Не вказано'}</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Вага (кг):</span>{isEditingDetails ? <input type="number" step="0.1" className="border rounded px-2 py-1" value={editForm.weight_kg || ''} onChange={e => setEditForm({ ...editForm, weight_kg: parseFloat(e.target.value) })} /> : <span>{selectedPetForDetails.weight_kg ? `${selectedPetForDetails.weight_kg} кг` : 'Не вказано'}</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Колір:</span>{isEditingDetails ? <input className="border rounded px-2 py-1" value={editForm.color || ''} onChange={e => setEditForm({ ...editForm, color: e.target.value })} /> : <span>{selectedPetForDetails.color || 'Не вказано'}</span>}</div>
                     <div className="flex flex-col"><span className="font-semibold text-amber-900">Стерилізація:</span>{isEditingDetails ? <input type="checkbox" checked={editForm.sterilized || false} onChange={e => setEditForm({ ...editForm, sterilized: e.target.checked })} /> : <span>{selectedPetForDetails.sterilized ? 'Так' : 'Ні'}</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Витрати (грн/міс):</span>{isEditingDetails ? <input type="number" className="border rounded px-2 py-1" value={editForm.monthly_cost || ''} onChange={e => setEditForm({ ...editForm, monthly_cost: parseInt(e.target.value) })} /> : <span>{selectedPetForDetails.monthly_cost || 0} грн</span>}</div>
+                    <div className="flex flex-col"><span className="font-semibold text-amber-900">Статус:</span>{isEditingDetails ? <select className="border rounded px-2 py-1" value={editForm.status || 'available'} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })}><option value="available">Доступний</option><option value="trial">На тріалі</option><option value="adopted">У родині</option></select> : <span>{selectedPetForDetails.status === 'available' ? 'Доступний' : selectedPetForDetails.status === 'trial' ? 'На тріалі' : 'У родині'}</span>}</div>
                   </div>
+                  <div className="flex flex-col"><span className="font-semibold text-amber-900">Здоров'я:</span>{isEditingDetails ? <input className="border rounded px-3 py-1 w-full" value={editForm.health_status || ''} onChange={e => setEditForm({ ...editForm, health_status: e.target.value })} /> : <p>{selectedPetForDetails.health_status || 'В нормі'}</p>}</div>
+                  <div className="flex flex-col"><span className="font-semibold text-amber-900">Медичні умови:</span>{isEditingDetails ? <input className="border rounded px-3 py-1 w-full" value={editForm.medical_conditions || ''} onChange={e => setEditForm({ ...editForm, medical_conditions: e.target.value })} /> : <p>{selectedPetForDetails.medical_conditions || 'Відсутні'}</p>}</div>
+                  <div className="flex flex-col"><span className="font-semibold text-amber-900">Темперамент (через кому):</span>{isEditingDetails ? <input className="border rounded px-3 py-1 w-full" value={Array.isArray(editForm.temperament_tags) ? editForm.temperament_tags.join(', ') : ''} onChange={e => setEditForm({ ...editForm, temperament_tags: e.target.value.split(',').map(t => t.trim()) })} /> : <div className="flex flex-wrap gap-1 mt-1">{selectedPetForDetails.temperament_tags?.map(t => <span key={t} className="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full">{t}</span>)}</div>}</div>
+                  <div className="flex flex-col"><span className="font-semibold text-amber-900">Ідеальний господар (через кому):</span>{isEditingDetails ? <input className="border rounded px-3 py-1 w-full" value={Array.isArray(editForm.ideal_owner_tags) ? editForm.ideal_owner_tags.join(', ') : ''} onChange={e => setEditForm({ ...editForm, ideal_owner_tags: e.target.value.split(',').map(t => t.trim()) })} /> : <div className="flex flex-wrap gap-1 mt-1">{selectedPetForDetails.ideal_owner_tags?.map(t => <span key={t} className="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full">{t}</span>)}</div>}</div>
                   <div className="flex flex-col"><span className="font-semibold text-amber-900">Опис:</span>{isEditingDetails ? <textarea rows={5} className="border rounded px-3 py-2 w-full" value={editForm.description || ''} onChange={e => setEditForm({ ...editForm, description: e.target.value })} /> : <p className="whitespace-pre-wrap">{selectedPetForDetails.description}</p>}</div>
                 </div>
               </div>
